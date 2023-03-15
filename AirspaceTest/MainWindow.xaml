@@ -10,7 +10,7 @@
 	<Grid Name="gridMain">
 		<TextBox IsReadOnly="True" AcceptsReturn="True" BorderThickness="4" BorderBrush="Lime" HorizontalAlignment="Stretch" Margin="10,10,10,100" VerticalAlignment="Stretch" Name="txtLog" >
 			<TextBox.Resources>
-			<SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="SlateGray" />
+			<SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="White" />
 			<SolidColorBrush x:Key="TextControlBackgroundFocused" Color="LightYellow" />
 			</TextBox.Resources>
 		</TextBox>

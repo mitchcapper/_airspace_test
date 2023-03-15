@@ -30,6 +30,7 @@ namespace AirspaceTest {
 		/// </summary>
 		public App() {
 			this.InitializeComponent();
+			RequestedTheme = ApplicationTheme.Light;
 		}
 
 		/// <summary>
