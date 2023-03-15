@@ -20,6 +20,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Diagnostics;
+using System.Drawing.Text;
+using System.Collections.Concurrent;
+using HWND = Windows.Win32.Foundation.HWND;
 
 namespace UnitedSets.NotWindows.Flyout.OutOfBoundsFlyout {
 	static class OutOfBoundsFlyoutSystem {
@@ -65,6 +68,10 @@ namespace UnitedSets.NotWindows.Flyout.OutOfBoundsFlyout {
 		public static double heightScale;
 		private enum CUR_OVER { Us, Caller, External }
 		private static bool firstRun = true;
+		public static string Truncate(this string value, int maxLength) {
+			if (string.IsNullOrEmpty(value)) return value;
+			return value.Length <= maxLength ? value : value.Substring(0, maxLength);
+		}
 		private static Interop.UIAutomationClient.IUIAutomationElement ElementFromCursor() {
 			// Convert mouse position from System.Drawing.Point to System.Windows.Point.
 			var auto = new Interop.UIAutomationClient.CUIAutomation();
@@ -74,7 +81,7 @@ namespace UnitedSets.NotWindows.Flyout.OutOfBoundsFlyout {
 
 			return element;
 		}
-		public const bool REAL_BOY_MODE = true;
+		public const bool REAL_BOY_MODE = false;
 		public static async Task ShowAsync(FlyoutBase Flyout, Point pt, FlyoutPlacementMode placementMode = FlyoutPlacementMode.Auto) {
 			if (firstRun) {
 				//appWindow = Window.FromWindowHandle(SysDiaProcess.GetCurrentProcess().MainWindowHandle);
@@ -141,36 +148,47 @@ namespace UnitedSets.NotWindows.Flyout.OutOfBoundsFlyout {
 					var flags = CWP_FLAGS.CWP_ALL;
 					var flags4 = CWP_FLAGS.CWP_SKIPINVISIBLE | CWP_FLAGS.CWP_SKIPDISABLED | CWP_FLAGS.CWP_SKIPTRANSPARENT;
 
-					var handlesToTry = new List<IntPtr>(new[] { usHandle, callerHandle });
-
-					Windows.Win32.Foundation.BOOL ThreadEnumCallback(Windows.Win32.Foundation.HWND wind, Windows.Win32.Foundation.LPARAM vall) {
-						handlesToTry.Add(wind.Value);
+					var allWindows = new List<IntPtr>(new[] { usHandle, callerHandle });
+					HashSet<IntPtr> childrenFetched = new();
+					ConcurrentQueue<IntPtr> parentsToGetKids = new();
+					Windows.Win32.Foundation.BOOL ThreadEnumCallback(HWND wind, Windows.Win32.Foundation.LPARAM vall) {
+						allWindows.Add(wind.Value);
+						parentsToGetKids.Enqueue(wind.Value);
 						return true;
 					}
 					//var it = new Windows.Win32.UI.WindowsAndMessaging.WNDENUMPROC;
 					PInvoke.EnumThreadWindows(uiThread, ThreadEnumCallback, 0);
-					handlesToTry = handlesToTry.Distinct().ToList();
+					while (parentsToGetKids.TryDequeue(out var par)) {
+						if (childrenFetched.Contains(par))
+							continue;
+						childrenFetched.Add(par);
+						PInvoke.EnumChildWindows((HWND)par, ThreadEnumCallback, 0);
+					}
+					allWindows = allWindows.Distinct().ToList();
 					await Task.Delay(100);
+					if (!parentsToGetKids.IsEmpty)
+						throw new Exception("Got more after fact???");
 
 					var res = new List<IntPtr>();
-					var child = Window.FromWindowHandle(PInvoke.ChildWindowFromPointEx((Windows.Win32.Foundation.HWND)usHandle, pos, flags));
-					foreach (var hdl in handlesToTry) {
-						var child1 = PInvoke.ChildWindowFromPointEx((Windows.Win32.Foundation.HWND)hdl, pos, flags).Value;
-						var child4 = PInvoke.ChildWindowFromPointEx((Windows.Win32.Foundation.HWND)hdl, pos, flags4).Value;
-						var child2 = PInvoke.ChildWindowFromPoint((Windows.Win32.Foundation.HWND)hdl, pos).Value;
-						var child3 = PInvoke.RealChildWindowFromPoint((Windows.Win32.Foundation.HWND)hdl, pos).Value;
+					var child = Window.FromWindowHandle(PInvoke.ChildWindowFromPointEx((HWND)usHandle, pos, flags));
+					foreach (var hdl in allWindows) {
+						var child1 = PInvoke.ChildWindowFromPointEx((HWND)hdl, pos, flags).Value;
+						var child4 = PInvoke.ChildWindowFromPointEx((HWND)hdl, pos, flags4).Value;
+						var child2 = PInvoke.ChildWindowFromPoint((HWND)hdl, pos).Value;
+						var child3 = PInvoke.RealChildWindowFromPoint((HWND)hdl, pos).Value;
 						res.AddRange(new[] { child1, child2, child3, child4 });
 						//Window.FromWindowHandle(
 					}
-					//            var child = Window.FromWindowHandle( PInvoke.ChildWindowFromPointEx((Windows.Win32.Foundation.HWND)usHandle,pos, flags));
-					//var child4 = Window.FromWindowHandle( PInvoke.ChildWindowFromPointEx((Windows.Win32.Foundation.HWND)usHandle,pos, flags4));
-					//var child2 = Window.FromWindowHandle( PInvoke.ChildWindowFromPoint((Windows.Win32.Foundation.HWND)usHandle,pos));
-					//var child3 = Window.FromWindowHandle( PInvoke.RealChildWindowFromPoint((Windows.Win32.Foundation.HWND)usHandle,pos));  {child2.Handle.Value} {child3.Handle.Value} {child4.Handle.Value}
-					var distinctKids = res.Distinct().Select(Window.FromWindowHandle).ToArray();
+					//            var child = Window.FromWindowHandle( PInvoke.ChildWindowFromPointEx((HWND)usHandle,pos, flags));
+					//var child4 = Window.FromWindowHandle( PInvoke.ChildWindowFromPointEx((HWND)usHandle,pos, flags4));
+					//var child2 = Window.FromWindowHandle( PInvoke.ChildWindowFromPoint((HWND)usHandle,pos));
+					//var child3 = Window.FromWindowHandle( PInvoke.RealChildWindowFromPoint((HWND)usHandle,pos));  {child2.Handle.Value} {child3.Handle.Value} {child4.Handle.Value}
+					var distinctUnderPoints = res.Distinct().Select(Window.FromWindowHandle).ToArray();
 					var elem = ElementFromCursor();
 					var uiaWidth = elem.CurrentBoundingRectangle.right - elem.CurrentBoundingRectangle.left;
 					var uiaHeight = elem.CurrentBoundingRectangle.bottom - elem.CurrentBoundingRectangle.top;
-					var msgr = $" UIA element: {elem.CurrentName,10} control: {elem.CurrentControlType} size: {uiaWidth,4},{uiaHeight,4}  ||  threadHandles: {handlesToTry.Count} have {res.Distinct().Count()} kids At point: {pos,15}: Over: {over,8} {under.Root.ToString().Substring(0, 50)} norm child: {child.Handle.Value} RES: {String.Join(" # ", distinctKids)} : {child.Root} flags: {flags} ### {under}";
+					
+					var msgr = $" UIA element: {elem.CurrentName,10} control: {elem.CurrentControlType} size: {uiaWidth,4},{uiaHeight,4}  ||  total windows: {allWindows.Count} have {distinctUnderPoints.Count()} fromPoint responses At point: {pos,15}: Over: {over,8} {under.Root.ToString().Truncate( 50)} norm child: {child.Handle.Value} RES: {String.Join(" # ", distinctUnderPoints.Select(a => a.ToString().Truncate(50)))} : {child.Root} flags: {flags} ### {under}";
 					msgr = msgr.Replace("Microsoft.UI.Content.", "M.").Replace("DesktopChildSiteBridge", "DCSBridge");
 					SetStatus(msgr, over switch { CUR_OVER.Us => ourColor, CUR_OVER.Caller => appColor, CUR_OVER.External => notUsColor, _ => throw new NotImplementedException() });
 					if (under.Root == window) {
@@ -191,13 +209,13 @@ namespace UnitedSets.NotWindows.Flyout.OutOfBoundsFlyout {
 						if (notOverMenu) {
 							window.SetExStyleFlag(Windows.Win32.UI.WindowsAndMessaging.WINDOW_EX_STYLE.WS_EX_TRANSPARENT, true);
 							if (weVisible) {
-								
+
 								SetStatus($"{DateTime.Now}: Gone transparent", notUsColor);
 							}
 							weVisible = false;
 						} else {
 							if (!weVisible) {
-								SetStatus($"{DateTime.Now}: Hi There you on us:) in {totalLoop} we have spent {totalTicks} ms processing (avg: {totalTicks/(double)totalLoop:0.00})", ourColor);
+								SetStatus($"{DateTime.Now}: Hi There you on us:) in {totalLoop} we have spent {totalTicks} ms processing (avg: {totalTicks / (double)totalLoop:0.00})", ourColor);
 								weVisible = true;
 								window.SetExStyleFlag(Windows.Win32.UI.WindowsAndMessaging.WINDOW_EX_STYLE.WS_EX_TRANSPARENT, false);
 							}
