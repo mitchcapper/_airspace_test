@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Toolkit.Uwp;
@@ -7,7 +8,10 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using UnitedSets.NotWindows.Flyout.OutOfBoundsFlyout;
+using Windows.UI;
 using WinUIEx;
+using WinWrapper;
+using Colors = System.Drawing.Color;
 
 
 // To learn more about WinUI, the WinUI project structure,
@@ -85,9 +89,22 @@ namespace AirspaceTest {
 		}
 		private static volatile bool LogPaused;
 		private static StringBuilder logText = new();
-		public static void SetStatus(string msg) {
-			instance.DispatcherQueue.EnqueueAsync(() =>
-			instance.txtStatus.Text = msg
+		private Color lastColor;
+		private static System.Drawing.ColorConverter ColorConvert = new();
+		public static Color ConvertToColor(String colorStr) => ConvertFromDrawColor((System.Drawing.Color)ColorConvert.ConvertFromString(colorStr));
+		public static Color ConvertFromDrawColor(System.Drawing.Color dcolor) => Color.FromArgb(dcolor.A, dcolor.R, dcolor.G, dcolor.B);
+
+		private static ConcurrentDictionary<Colors, SolidColorBrush> colorToBrush = new();
+		public static void SetStatus(string msg, Colors? color = null) {
+			var bgColor = color ?? Colors.White;
+			if (!colorToBrush.TryGetValue(bgColor, out var brush))
+				colorToBrush[bgColor] = brush = new SolidColorBrush(ConvertFromDrawColor(bgColor));
+
+			instance.DispatcherQueue.EnqueueAsync(() => {
+				instance.txtStatus.Text = msg;
+				instance.txtStatus.Background = brush;
+
+			}
 			);
 		}
 		private void myButton_Click(object sender, RoutedEventArgs e) {
@@ -102,8 +119,9 @@ namespace AirspaceTest {
 		private void Grid_PreviewKeyDown(object sender, KeyRoutedEventArgs e) {
 			if (e.Key == Windows.System.VirtualKey.Shift)
 				log(WinWrapper.Cursor.Position.ToString());
-			if (e.Key == Windows.System.VirtualKey.Control)
+			if (e.Key == Windows.System.VirtualKey.Control && Keyboard.IsRightControlDown)
 				test();
+
 		}
 
 
