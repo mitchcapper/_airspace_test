@@ -24,6 +24,7 @@ namespace AirspaceTest {
 	public sealed partial class MainWindow : WinUIEx.WindowEx {
 		public MainWindow() {
 			this.InitializeComponent();
+			//this.MoveAndResize(0, 0, 50, 50);
 			Activated += MainWindow_Activated;
 			Closed += MainWindow_Closed;
 
@@ -47,7 +48,9 @@ namespace AirspaceTest {
 
 
 			Activated -= MainWindow_Activated;
-			this.CenterOnScreen(900, 500);
+			//this.CenterOnScreen(900, 500);
+			
+			
 			instance = this;
 			OutOfBoundsFlyoutSystem.Initialize(true);
 			txtLog.GotFocus += (_, _) => LogPaused = true;

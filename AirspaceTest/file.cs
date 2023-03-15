@@ -109,7 +109,7 @@ namespace UnitedSets.NotWindows.Flyout.OutOfBoundsFlyout {
 					over = CUR_OVER.Caller;
 				else
 					over = CUR_OVER.External;
-				SetStatus($"At point: {pos,15}: Over: {over,8} {under.Root}", over switch { CUR_OVER.Us=>ourColor, CUR_OVER.Caller=>appColor, CUR_OVER.External=>notUsColor,_=>throw new NotImplementedException() });
+				SetStatus($"At point: {pos,15}: Over: {over,8} {under.Handle.Value,8} {under.Root}", over switch { CUR_OVER.Us=>ourColor, CUR_OVER.Caller=>appColor, CUR_OVER.External=>notUsColor,_=>throw new NotImplementedException() });
 				if (under.Root == Window) {
 
 				} else {
