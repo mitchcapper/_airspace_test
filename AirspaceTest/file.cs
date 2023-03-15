@@ -49,6 +49,8 @@ namespace UnitedSets.NotWindows.Flyout.OutOfBoundsFlyout {
 				trans_mgr.Cleanup();
 			}
 		}
+		public static double widthScale;
+		public static double heightScale;
 		public static async Task ShowAsync(FlyoutBase Flyout, Point pt, FlyoutPlacementMode placementMode = FlyoutPlacementMode.Auto) {
 			var instance = Instance;
 			var Window = instance.Window;
@@ -60,11 +62,20 @@ namespace UnitedSets.NotWindows.Flyout.OutOfBoundsFlyout {
 				Height = displayBounds.Height
 			};
 			instance.Activate();
+			await Task.Delay(50);//critical for sizing to be right, could cache scale info per monitor and watch for dpi changes
+			widthScale = Window.ClientBounds.Width / instance.swapChainPanel.ActualWidth;
+			heightScale = Window.ClientBounds.Height / instance.swapChainPanel.ActualHeight;
+			var loc = new WinUIPoint(pt.X - displayBounds.X, pt.Y - displayBounds.Y);
+			var scaled = loc;
+			scaled.X /= widthScale;
+			scaled.Y /= heightScale;
 
+			Log($"Showing at: {loc} (scaled: {scaled}) Win bounds: {Window.Bounds} (client: {Window.ClientBounds}) SwapC Size: {instance.swapChainPanel.ActualSize}  scale: {widthScale:0.000}x{heightScale:0.000}");
 
+			Flyout.ShowAt(instance.swapChainPanel, new() {
 				ShowMode = FlyoutShowMode.Standard,
 				Placement = placementMode,
-                Position = new WinUIPoint(pt.X - displayBounds.X, pt.Y - displayBounds.Y)
+				Position = scaled
 			});
 
 			bool Opening = true;
