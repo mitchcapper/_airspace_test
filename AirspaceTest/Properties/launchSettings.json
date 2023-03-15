@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "AirspaceTest Unpackaged": {
+        "commandName": "Project",
+        "nativeDebugging": false,
+    }
+  }
+}
