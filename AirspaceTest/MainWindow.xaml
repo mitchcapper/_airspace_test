@@ -8,7 +8,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 	<Grid Name="gridMain">
-		<TextBox IsReadOnly="True" AcceptsReturn="True" BorderThickness="4" BorderBrush="Lime" HorizontalAlignment="Stretch" Margin="10,10,10,100" VerticalAlignment="Stretch" Name="txtLog" >
+		<TextBox  FontFamily="Consolas" FontSize="12" IsReadOnly="True" AcceptsReturn="True" BorderThickness="4" BorderBrush="Lime" HorizontalAlignment="Stretch" Margin="10,10,10,100" VerticalAlignment="Stretch" Name="txtLog" >
 			<TextBox.Resources>
 			<SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="White" />
 			<SolidColorBrush x:Key="TextControlBackgroundFocused" Color="LightYellow" />
@@ -18,6 +18,6 @@
         <Button x:Name="myButton" Click="myButton_Click">Click Me</Button>
     </StackPanel>
 		<Button Content="Ho" Name="btnHo" Click="btnHo_Click" />
-		<TextBox Width="700" HorizontalAlignment="Left"  VerticalAlignment="Bottom" Name="txtStatus" />
+		<TextBox FontSize="12" Margin="5"  VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Name="txtStatus" FontFamily="Consolas" />
 	</Grid>
 </winuiex:WindowEx>
