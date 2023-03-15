@@ -11,6 +11,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.UI.Xaml.Shapes;
+using UnitedSets.NotWindows.Flyout.OutOfBoundsFlyout;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
@@ -39,8 +40,10 @@ namespace AirspaceTest {
 		/// </summary>
 		/// <param name="args">Details about the launch request and process.</param>
 		protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args) {
+			//OutOfBoundsFlyoutSystem.Initialize(true);
 			m_window = new MainWindow();
 			m_window.Activate();
+			//MainWindow.test();
 		}
 
 		private Window m_window;

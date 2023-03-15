@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Toolkit.Uwp;
@@ -23,6 +24,7 @@ namespace AirspaceTest {
 	/// </summary>
 	public sealed partial class MainWindow : WinUIEx.WindowEx {
 		public MainWindow() {
+			MinHeight = MinWidth = 0;
 			this.InitializeComponent();
 			//this.MoveAndResize(0, 0, 50, 50);
 			Activated += MainWindow_Activated;
@@ -48,7 +50,7 @@ namespace AirspaceTest {
 
 
 			Activated -= MainWindow_Activated;
-			//this.CenterOnScreen(900, 500);
+			this.CenterOnScreen(900, 500);
 			
 			
 			instance = this;
@@ -57,7 +59,7 @@ namespace AirspaceTest {
 			txtLog.LostFocus += (_, _) => LogPaused = false;
 		}
 		private static MainWindow instance;
-		public async Task test() {
+		public static async Task test() {
 			int cnt = 0;
 			var btn = new Button { Content = "Hi", };
 			btn.Click += (_, _) => btn.Content = "Hi" + cnt++;
@@ -83,7 +85,9 @@ namespace AirspaceTest {
 			logText.Insert(0, str + "\r\n");
 			if (ex != null)
 				str += $" Exception {ex.GetType()}: {ex.ToString}";
-			if (!LogPaused) {
+			if (instance == null)
+				Debug.WriteLine(str);
+			else if (!LogPaused) {
 				instance.DispatcherQueue.EnqueueAsync(() =>
 					instance.txtLog.Text = logText.ToString()
 				);
@@ -99,6 +103,12 @@ namespace AirspaceTest {
 
 		private static ConcurrentDictionary<Colors, SolidColorBrush> colorToBrush = new();
 		public static void SetStatus(string msg, Colors? color = null) {
+
+			if (instance == null) {
+				log(msg);
+
+				return;
+			}
 			var bgColor = color ?? Colors.White;
 			if (!colorToBrush.TryGetValue(bgColor, out var brush))
 				colorToBrush[bgColor] = brush = new SolidColorBrush(ConvertFromDrawColor(bgColor));
